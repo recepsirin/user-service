@@ -66,7 +66,6 @@ class AddAdditionalContactInfoSerializer(serializers.Serializer):
         return _repr
 
 
-
 class UpdateContactInfoSerializer(serializers.Serializer):
     emails = serializers.ListSerializer(child=serializers.EmailField())
     phonenumbers = serializers.ListSerializer(child=serializers.CharField())
@@ -101,5 +100,12 @@ class DetailedUserSerializer(serializers.ModelSerializer):
         _repr["lastname"] = instance.lastname
         _repr["firstname"] = instance.firstname
         _repr["emails"] = {i.id: i.email for i in instance.emails.all()}
-        _repr["phonenumbers"] = {i.id: i.number for i in instance.phonenumbers.all()}
+        _repr["phonenumbers"] = {i.id: i.number for i in
+                                 instance.phonenumbers.all()}
         return _repr
+
+
+class DetailedEmailContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Email
+        exclude = ('id',)
