@@ -13,4 +13,4 @@ COPY ./users /app
 
 EXPOSE 8000
 
-CMD python ./users/manage.py migrate && python ./users/manage.py runserver 0.0.0.0:8000
+CMD python ./users/manage.py migrate
