@@ -109,3 +109,9 @@ class DetailedEmailContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Email
         exclude = ('id',)
+
+
+class DetailedPhoneNumberContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PhoneNumber
+        exclude = ('id',)
