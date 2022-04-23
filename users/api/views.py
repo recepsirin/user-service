@@ -9,7 +9,8 @@ from .serializers import (CreateUserWithContactInfoSerializer,
                           DetailedUserSerializer,
                           UpdateContactInfoSerializer,
                           DetailedEmailContactSerializer,
-                          DetailedPhoneNumberContactSerializer)
+                          DetailedPhoneNumberContactSerializer,
+                          UserDeleteSerializer)
 
 from rest_framework.generics import GenericAPIView, ListAPIView
 
@@ -28,6 +29,16 @@ class UserView(GenericAPIView):
         qs = self.filter_queryset(User.objects.all())
         serializer = ListUsersSerializer(qs, many=True)
         return Response(serializer.data)
+
+    def delete(self, request):
+        serializer = UserDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = User.objects.get(id=serializer.validated_data['id'])
+            user.delete()
+        except User.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ContactInfoView(GenericAPIView):

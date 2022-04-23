@@ -115,3 +115,7 @@ class DetailedPhoneNumberContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = PhoneNumber
         exclude = ('id',)
+
+
+class UserDeleteSerializer(serializers.Serializer):
+    id = serializers.IntegerField(min_value=1)
