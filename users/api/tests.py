@@ -1,7 +1,9 @@
 from django.test import TestCase
 from model_mommy import mommy
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
-
+from django.urls import reverse
+from rest_framework.test import APIClient
 from .models import User, Email, PhoneNumber
 from .serializers import CreateUserWithContactInfoSerializer
 
@@ -81,3 +83,43 @@ class CreateUserWithContactInfoSerializerTest(TestCase):
                          self.payload['emails'][0])
         self.assertEqual(_instance.phonenumbers.all()[0].number,
                          self.payload['phonenumbers'][0])
+
+
+class UsersEndpointTest(TestCase):
+
+    def setUp(self):
+        self.payload = {
+            "lastname": "Doe", "firstname": "John",
+            "emails": ["john.doe@gmail.com", "noname@domain.com"],
+            "phonenumbers": ["+90 555 555 55 55", "+49 555 55 55"]
+        }
+        self.client = APIClient()
+
+    def test_create_user_with_contact_info(self):
+        response = self.client.post(reverse('user'), self.payload,
+                                    format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.json(), self.payload)
+
+    def _test_generate_users(self):
+        for i in range(0, 10):
+            mommy.make(User, emails=[mommy.make(Email)],
+                       phonenumbers=[mommy.make(PhoneNumber)])
+
+    def test_list_users(self):
+        self._test_generate_users()
+        response = self.client.get(reverse('user'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.json(), list)
+        self.assertIsInstance(response.json()[0], dict)
+
+    def test_delete_user(self):
+        self._test_generate_users()
+        response = self.client.delete(reverse('user'), {"id": 1},
+                                      format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        response = self.client.delete(reverse('user'), {"id": 2121},
+                                      format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
