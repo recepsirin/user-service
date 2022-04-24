@@ -123,3 +123,75 @@ class UsersEndpointTest(TestCase):
         response = self.client.delete(reverse('user'), {"id": 2121},
                                       format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ContactInfoEndpointTest(TestCase):
+
+    def setUp(self):
+        self.payload = {
+            "email": "john.doe@gmail.com",
+            "phone_number": "+90 555 555 55 55"
+        }
+        self.client = APIClient()
+
+    def _test_generate_users(self):
+        for i in range(0, 10):
+            mommy.make(User, emails=[mommy.make(Email)],
+                       phonenumbers=[mommy.make(PhoneNumber)])
+
+    def test_add_additional_contact_info(self):
+        self._test_generate_users()
+        # api/v1/users/1/contact/
+        response = self.client.post(reverse('contact', kwargs={'id': 1}),
+                                    {
+                                        "emails": ["john.doe@gmail.com",
+                                                   "noname@domain.com"],
+                                    },
+                                    format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # there are currently no any record with the id is 123 on db
+        response = self.client.post(reverse('contact', kwargs={'id': 123}),
+                                    self.payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        response = self.client.post(reverse('contact', kwargs={'id': 1}),
+                                    self.payload,
+                                    format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # return data will be whole contact info from the related user
+        returned_data = response.json()
+        self.assertEqual(returned_data['emails'][-1], self.payload['email'])
+        self.assertEqual(returned_data['phonenumbers'][-1],
+                         self.payload['phone_number'])
+
+    def test_list_specific_users_contact_info(self):
+        self._test_generate_users()
+        # api/v1/users/1/contact
+
+        response = self.client.get(reverse('contact', kwargs={'id': 1}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user_data = response.json()
+        self.assertEqual(user_data['id'],
+                         1)  # kwargs data above which refers user's id
+        self.assertIn("lastname", user_data)
+        self.assertIn("firstname", user_data)
+        self.assertIn("emails", user_data)
+        self.assertIn("phonenumbers", user_data)
+
+        response = self.client.get(reverse('contact', kwargs={'id': 141}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_users_contact_info(self):
+        self._test_generate_users()
+        # api/v1/users/1/contact/
+
+        will_be_updated = {"emails": ["recepsirin@gmail.com",
+                                      "asdadasd@mail.com"],
+                           "phonenumbers": ["+90 0555 777 22 11"]
+                           }
+        response = self.client.put(reverse('contact', kwargs={'id': 1}),
+                                   will_be_updated, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(will_be_updated, response.json())
