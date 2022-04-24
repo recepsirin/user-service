@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import User, Email, PhoneNumber
+from .pagination import Pagination
 from .serializers import (CreateUserWithContactInfoSerializer,
                           ListUsersSerializer,
                           AddAdditionalContactInfoSerializer,
@@ -18,6 +19,7 @@ from rest_framework.generics import GenericAPIView, ListAPIView
 class UserView(GenericAPIView):
     filter_backends = [DjangoFilterBackend]
     filter_fields = ['id', 'firstname']
+    pagination_class = Pagination
 
     def post(self, request):
         serializer = CreateUserWithContactInfoSerializer(data=request.data)
@@ -28,6 +30,9 @@ class UserView(GenericAPIView):
     def get(self, request):
         qs = self.filter_queryset(User.objects.all())
         serializer = ListUsersSerializer(qs, many=True)
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
     def delete(self, request):
