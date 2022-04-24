@@ -195,3 +195,61 @@ class ContactInfoEndpointTest(TestCase):
                                    will_be_updated, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(will_be_updated, response.json())
+
+
+class TestDetailedEmailContactView(TestCase):
+
+    def _test_generate_users(self):
+        for i in range(0, 10):
+            mommy.make(User, emails=[mommy.make(Email)],
+                       phonenumbers=[mommy.make(PhoneNumber)])
+
+    def test_detailed_contact_email(self):
+        self._test_generate_users()
+        # api/v1/users/1/contact/email/1
+
+        response = self.client.get(reverse('email', kwargs={'id': 1,
+                                                            'pk': 1}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user = User.objects.get(id=1)
+        email = user.emails.all()[0].email  # emails => 1st item => email data
+        self.assertEqual(response.json()['email'], email)
+
+        # api/v1/users/1/contact/email/11112
+        response = self.client.get(reverse('email', kwargs={'id': 1,
+                                                            'pk': 11112}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # api/v1/users/12/contact/email/1
+        response = self.client.get(reverse('email', kwargs={'id': 12,
+                                                            'pk': 1}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class TestDetailedPhoneNumberContactView(TestCase):
+
+    def _test_generate_users(self):
+        for i in range(0, 10):
+            mommy.make(User, emails=[mommy.make(Email)],
+                       phonenumbers=[mommy.make(PhoneNumber)])
+
+    def test_detailed_contact_phone_number(self):
+        self._test_generate_users()
+        # api/v1/users/1/contact/phone-number/1
+
+        response = self.client.get(reverse('number', kwargs={'id': 1,
+                                                             'pk': 1}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user = User.objects.get(id=1)
+        phone_number = user.phonenumbers.all()[0].number
+        self.assertEqual(response.json()['number'], phone_number)
+
+        # api/v1/users/1/contact/phone-number/11112
+        response = self.client.get(reverse('number', kwargs={'id': 1,
+                                                             'pk': 11112}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # api/v1/users/12/contact/phone-number/1
+        response = self.client.get(reverse('number', kwargs={'id': 12,
+                                                             'pk': 1}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
