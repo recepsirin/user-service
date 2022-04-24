@@ -243,3 +243,17 @@ class TestDetailedPhoneNumberContactView(BaseAPITest):
         response = self.client.get(reverse('number', kwargs={'id': 12,
                                                              'pk': 1}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class PaginationTest(BaseAPITest):
+
+    def setUp(self):
+        super(PaginationTest, self).setUp()
+
+    def test_pagination(self):
+        response = self.client.get(reverse("user"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("count", response.data)
+        self.assertIn("next", response.data)
+        self.assertIn("previous", response.data)
+        self.assertIn("results", response.data)
