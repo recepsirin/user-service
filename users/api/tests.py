@@ -85,62 +85,64 @@ class CreateUserWithContactInfoSerializerTest(TestCase):
                          self.payload['phonenumbers'][0])
 
 
-class UsersEndpointTest(TestCase):
+class BaseAPITest(TestCase):
+    def __int__(self):
+        self.client = APIClient()
 
     def setUp(self):
+        self._test_generate_users()
+
+    def _test_generate_users(self):
+        for i in range(1, 11):
+            mommy.make(User, id=i, emails=[mommy.make(Email)],
+                       phonenumbers=[mommy.make(PhoneNumber)])
+
+
+class UsersEndpointTest(BaseAPITest):
+
+    def setUp(self):
+        super(UsersEndpointTest, self).setUp()
         self.payload = {
             "lastname": "Doe", "firstname": "John",
             "emails": ["john.doe@gmail.com", "noname@domain.com"],
             "phonenumbers": ["+90 555 555 55 55", "+49 555 55 55"]
         }
-        self.client = APIClient()
 
     def test_create_user_with_contact_info(self):
         response = self.client.post(reverse('user'), self.payload,
+                                    content_type="application/json",
                                     format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.json(), self.payload)
 
-    def _test_generate_users(self):
-        for i in range(0, 10):
-            mommy.make(User, emails=[mommy.make(Email)],
-                       phonenumbers=[mommy.make(PhoneNumber)])
-
     def test_list_users(self):
-        self._test_generate_users()
         response = self.client.get(reverse('user'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.json(), list)
         self.assertIsInstance(response.json()[0], dict)
 
     def test_delete_user(self):
-        self._test_generate_users()
         response = self.client.delete(reverse('user'), {"id": 1},
-                                      format='json')
+                                      content_type="application/json")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         response = self.client.delete(reverse('user'), {"id": 2121},
+                                      content_type="application/json",
                                       format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
-class ContactInfoEndpointTest(TestCase):
+class ContactInfoEndpointTest(BaseAPITest):
 
     def setUp(self):
+        super(ContactInfoEndpointTest, self).setUp()
         self.payload = {
             "email": "john.doe@gmail.com",
             "phone_number": "+90 555 555 55 55"
         }
-        self.client = APIClient()
-
-    def _test_generate_users(self):
-        for i in range(0, 10):
-            mommy.make(User, emails=[mommy.make(Email)],
-                       phonenumbers=[mommy.make(PhoneNumber)])
 
     def test_add_additional_contact_info(self):
-        self._test_generate_users()
         # api/v1/users/1/contact/
         response = self.client.post(reverse('contact', kwargs={'id': 1}),
                                     {
@@ -167,9 +169,7 @@ class ContactInfoEndpointTest(TestCase):
                          self.payload['phone_number'])
 
     def test_list_specific_users_contact_info(self):
-        self._test_generate_users()
         # api/v1/users/1/contact
-
         response = self.client.get(reverse('contact', kwargs={'id': 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         user_data = response.json()
@@ -184,30 +184,24 @@ class ContactInfoEndpointTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_users_contact_info(self):
-        self._test_generate_users()
         # api/v1/users/1/contact/
-
         will_be_updated = {"emails": ["recepsirin@gmail.com",
                                       "asdadasd@mail.com"],
                            "phonenumbers": ["+90 0555 777 22 11"]
                            }
         response = self.client.put(reverse('contact', kwargs={'id': 1}),
-                                   will_be_updated, format='json')
+                                   will_be_updated, format='json',
+                                   content_type="application/json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(will_be_updated, response.json())
 
 
-class TestDetailedEmailContactView(TestCase):
-
-    def _test_generate_users(self):
-        for i in range(0, 10):
-            mommy.make(User, emails=[mommy.make(Email)],
-                       phonenumbers=[mommy.make(PhoneNumber)])
+class TestDetailedEmailContactView(BaseAPITest):
+    def setUp(self):
+        super(TestDetailedEmailContactView, self).setUp()
 
     def test_detailed_contact_email(self):
-        self._test_generate_users()
         # api/v1/users/1/contact/email/1
-
         response = self.client.get(reverse('email', kwargs={'id': 1,
                                                             'pk': 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -226,19 +220,15 @@ class TestDetailedEmailContactView(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
-class TestDetailedPhoneNumberContactView(TestCase):
-
-    def _test_generate_users(self):
-        for i in range(0, 10):
-            mommy.make(User, emails=[mommy.make(Email)],
-                       phonenumbers=[mommy.make(PhoneNumber)])
+class TestDetailedPhoneNumberContactView(BaseAPITest):
+    def setUp(self):
+        super(TestDetailedPhoneNumberContactView, self).setUp()
 
     def test_detailed_contact_phone_number(self):
-        self._test_generate_users()
         # api/v1/users/1/contact/phone-number/1
-
         response = self.client.get(reverse('number', kwargs={'id': 1,
-                                                             'pk': 1}))
+                                                             'pk': 1}),
+                                   headers={"Accept": "application/json"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         user = User.objects.get(id=1)
         phone_number = user.phonenumbers.all()[0].number
